@@ -4,23 +4,27 @@ substitutions:
     
 esphome:
   name: ${device_name}
-  platform: ESP8266
-  esp8266_restore_from_flash: true
-  board: d1_mini
   name_add_mac_suffix: false
   project:
     name: zuidwijk.slimmelezer
-    version: "1.2"
+    version: "2.0"
+          
+esp8266:
+  board: d1_mini
+  restore_from_flash: true
 
 wifi:
   # remove leading '#' and fill in your wifi details
-#  ssid: !secret wifi_ssid 
-#  password: !secret wifi_password
+  #  ssid: !secret wifi_ssid 
+  #  password: !secret wifi_password
 
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: ${device_name}
-
+    
+  # Powersaving for brownout due to 250mA restriction P1
+  output_power: 14dB
+  
 captive_portal:
 
 # Enable logging
@@ -31,7 +35,8 @@ logger:
 api:
 
 ota:
-
+  platform: esphome
+  
 dashboard_import:
   package_import_url: github://zuidwijk/dsmr/slimmelezer-be.yaml@main
   import_full_config: true
@@ -52,12 +57,16 @@ sensor:
   - platform: dsmr
     energy_delivered_tariff1:
       name: "Energy Consumed Tariff 1"
+      state_class: total_increasing
     energy_delivered_tariff2:
       name: "Energy Consumed Tariff 2"
+      state_class: total_increasing
     energy_returned_tariff1:
       name: "Energy Produced Tariff 1"
+      state_class: total_increasing
     energy_returned_tariff2:
       name: "Energy Produced Tariff 2"
+      state_class: total_increasing
     power_delivered:
       name: "Power Consumed"
       accuracy_decimals: 3
@@ -95,7 +104,13 @@ sensor:
       name: "Power Produced Phase 3"
       accuracy_decimals: 3
     gas_delivered_be:
-      name: "Gas Consumed Belgium"
+      name: "Gas Consumed Belgium in m³"
+      state_class: total_increasing
+      icon: mdi:meter-gas
+      unit_of_measurement: "m³"
+      id: gas_delivered_belgium
+    water_delivered:
+      name: "Water Consumed"
     active_energy_import_current_average_demand:
       name: "Peak Current Average Quarterly Demand"
       icon: mdi:chart-sankey
@@ -110,6 +125,16 @@ sensor:
   - platform: wifi_signal
     name: "${device_name} Wi-Fi Signal"
     update_interval: 60s
+  # https://www.vlaamsenutsregulator.be/nl/veelgestelde-vragen/hoe-wordt-m3-omgezet-kwh
+  - platform: template
+    name: "Gas Consumed Belgium in kWh"
+    unit_of_measurement: "kWh"
+    icon: mdi:meter-gas    
+    accuracy_decimals: 3
+    state_class: total_increasing
+    device_class: "energy"
+    lambda: |-
+      return id(gas_delivered_belgium).state * 11.51;    
 
 text_sensor:
   - platform: dsmr
